@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitTrack Pro v6.0 - 终极美化版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        /* 核心配色变量 */
+        :root { 
+            --primary: #2ecc71; --breakfast: #f39c12; --lunch: #e74c3c; 
+            --dinner: #8e44ad; --snack: #3498db; --danger: #c0392b;
+            --text-dark: #2c3e50; 
+        }
+        
+        /* 全局背景设置 */
+        body { 
+            font-family: 'PingFang SC', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            margin: 0; 
+            padding: 20px; 
+            color: var(--text-dark);
+            min-height: 100vh;
+            /* 背景图片 + 半透明黑色遮罩叠加 */
+            background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+                url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed; /* 背景固定不滚动 */
+        }
+
+        .container { max-width: 1200px; margin: auto; }
+        
+        /* --- 毛玻璃卡片通用样式 --- */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85); /* 半透明白色背景 */
+            backdrop-filter: blur(12px); /* 核心：毛玻璃模糊滤镜 */
+            -webkit-backdrop-filter: blur(12px); /* Safari 支持 */
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); /* 柔和的投影 */
+            border: 1px solid rgba(255, 255, 255, 0.4); /* 增加质感的白边框 */
+            margin-bottom: 25px;
+            transition: transform 0.2s;
+        }
+        /* 鼠标悬停轻微上浮效果 */
+        .glass-card:hover { transform: translateY(-2px); }
+
+        /* 顶部工具栏特别样式 */
+        .header-tools { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px 30px; 
+        }
+        .date-picker-wrap { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        #view-date { padding: 8px 15px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 1rem; cursor: pointer; border-left: 4px solid var(--primary); background: rgba(255,255,255,0.9); }
+
+        /* 主布局网格 */
+        .grid-main { display: grid; grid-template-columns: 380px 1fr; gap: 25px; }
+        
+        h2 { font-size: 1.2rem; margin: 0 0 20px 0; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 12px; display: flex; justify-content: space-between; color: #34495e; }
+        
+        /* 表单控件美化 */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; color: #606266; margin-bottom: 6px; font-weight: 500; }
+        select, input { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; box-sizing: border-box; background: rgba(255,255,255,0.9); transition: border 0.3s; }
+        select:focus, input:focus { border-color: var(--primary); outline: none; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3); }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:active { transform: scale(0.98); }
+        
+        /* 统计小方块 */
+        .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center; }
+        .summary-item { padding: 15px; border-radius: 12px; background: rgba(240, 242, 245, 0.6); border: 1px solid rgba(255,255,255,0.5); }
+        .summary-val { font-weight: 800; font-size: 1.25rem; display: block; margin-top: 8px; }
+        
+        /* 图表和列表 */
+        .chart-container { position: relative; height: 320px; }
+        .log-list { max-height: 300px; overflow-y: auto; padding-right: 5px; }
+        /* 美化滚动条 */
+        .log-list::-webkit-scrollbar { width: 6px; }
+        .log-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+        .log-item { display: flex; justify-content: space-between; padding: 12px 5px; border-bottom: 1px solid rgba(0,0,0,0.05); align-items: center; }
+        .log-item b { font-size: 1rem; color: #2c3e50; }
+        
+        /* 标签体系 */
+        .tag { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; color: white; margin-right: 8px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .bg-breakfast { background: var(--breakfast); } .bg-lunch { background: var(--lunch); }
+        .bg-dinner { background: var(--dinner); } .bg-snack { background: var(--snack); }
+
+        @media (max-width: 950px) { .grid-main { grid-template-columns: 1fr; } .header-tools { flex-direction: column; gap: 15px; align-items: flex-start; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-tools glass-card">
+        <h1 style="margin:0; font-size: 1.6rem; display:flex; align-items:center;">
+            💪 <span style="margin-left:8px;">FitTrack</span> <span style="color:var(--primary); margin-left:5px;">Pro</span>
+        </h1>
+        <div class="date-picker-wrap">
+            <label style="color:#555">📅 回顾日期：</label>
+            <input type="date" id="view-date" onchange="changeDate()">
+        </div>
+    </div>
+
+    <div class="grid-main">
+        <div class="side">
+            <div class="glass-card">
+                <h2 id="entry-title">🍲 饮食记录</h2>
+                <div class="form-group">
+                    <label>所属餐次</label>
+                    <select id="meal-type">
+                        <option value="早餐">早餐 Breakfast</option>
+                        <option value="中餐">中餐 Lunch</option>
+                        <option value="晚餐">晚餐 Dinner</option>
+                        <option value="加餐">加餐 Snack</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>选择常吃食物</label>
+                    <select id="food-select">
+                        <option value="yogurt">🥣 无糖酸奶 (60kcal/100g)</option>
+                        <option value="blueberries">🫐 蓝莓 (57kcal/100g)</option>
+                        <option value="oats">🌾 燕麦干重 (389kcal/100g)</option>
+                        <option value="nuts">🥜 综合坚果 (607kcal/100g)</option>
+                        <option value="chicken_thigh">🍗 去皮鸡腿肉 (121kcal/100g)</option>
+                        <option value="rice">🍚 米饭 (116kcal/100g)</option>
+                        <option value="vegetables">🥦 时令青菜 (25kcal/100g)</option>
+                        <option value="shrimp">🍤 虾仁 (99kcal/100g)</option>
+                        <option value="steak">🥩 瘦牛排 (252kcal/100g)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>摄入重量 (g)</label>
+                    <input type="number" id="food-weight" placeholder="例如: 200">
+                </div>
+                <button onclick="addEntry()">✅ 确认记录</button>
+            </div>
+
+            <div class="glass-card">
+                <h2>🛡️ 热量防爆线 <small style="font-size:0.8rem; opacity:0.7">(kcal)</small></h2>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <div class="form-group"><label>早餐上限</label><input type="number" id="limit-早餐" value="500" onchange="updateUI()"></div>
+                    <div class="form-group"><label>中餐上限</label><input type="number" id="limit-中餐" value="800" onchange="updateUI()"></div>
+                    <div class="form-group"><label>晚餐上限</label><input type="number" id="limit-晚餐" value="700" onchange="updateUI()"></div>
+                    <div class="form-group"><label>加餐上限</label><input type="number" id="limit-加餐" value="300" onchange="updateUI()"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="glass-card">
+                <h2>📊 <span id="status-date-title"></span> 数据看板</h2>
+                <div class="summary-grid">
+                    <div class="summary-item"><small>早餐摄入</small><span id="sum-早" class="summary-val">0</span></div>
+                    <div class="summary-item"><small>中餐摄入</small><span id="sum-中" class="summary-val">0</span></div>
+                    <div class="summary-item"><small>晚餐摄入</small><span id="sum-晚" class="summary-val">0</span></div>
+                    <div class="summary-item" style="background:rgba(46, 204, 113, 0.15); border-color: var(--primary);"><small style="color:var(--primary)">今日总计</small><span id="sum-总" class="summary-val" style="color:var(--primary)">0</span></div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
+                <div class="glass-card">
+                    <h2>🥧 三大营养素 (g)</h2>
+                    <div class="chart-container" style="height:280px;"><canvas id="todayChart"></canvas></div>
+                </div>
+                <div class="glass-card">
+                    <h2>📜 饮食明细</h2>
+                    <div id="log-list" class="log-list"></div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <h2>📈 七日热量追踪</h2>
+                <div class="chart-container"><canvas id="trendChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const FOOD_DB = {
+        yogurt: { name: "酸奶", cal: 60, p: 3.5, c: 4.8, f: 3.0 },
+        blueberries: { name: "蓝莓", cal: 57, p: 0.7, c: 14.5, f: 0.3 },
+        oats: { name: "燕麦", cal: 389, p: 16.9, c: 66, f: 6.9 },
+        nuts: { name: "坚果", cal: 607, p: 18, c: 21, f: 54 },
+        chicken_thigh: { name: "鸡腿肉", cal: 121, p: 19, c: 0, f: 4.5 },
+        rice: { name: "米饭", cal: 116, p: 2.6, c: 25.9, f: 0.3 },
+        vegetables: { name: "青菜", cal: 25, p: 1.5, c: 4, f: 0.2 },
+        shrimp: { name: "虾仁", cal: 99, p: 20, c: 0, f: 1.1 },
+        steak: { name: "牛排", cal: 252, p: 27, c: 0, f: 15 }
+    };
+
+    const STORAGE_KEY = 'FitTrack_Pro_Permanent_v5';
+    let historyData = {};
+    let selectedDate = new Date().toISOString().split('T')[0];
+
+    function loadData() {
+        const oldKeys = ['FitTrack_Pro_Permanent', 'fitTrackV4', 'fitTrackV3', 'fitHistory'];
+        let merged = {};
+        oldKeys.forEach(k => {
+            const d = localStorage.getItem(k);
+            if(d) Object.assign(merged, JSON.parse(d).history || JSON.parse(d));
+        });
+        const current = JSON.parse(localStorage.getItem(STORAGE_KEY)) || merged;
+        return current;
+    }
+
+    historyData = loadData();
+    let todayChart, trendChart;
+    Chart.register(ChartDataLabels);
+
+    window.onload = () => {
+        document.getElementById('view-date').value = selectedDate;
+        initCharts();
+        updateUI();
+    };
+
+    function changeDate() {
+        selectedDate = document.getElementById('view-date').value;
+        updateUI();
+    }
+
+    function addEntry() {
+        const meal = document.getElementById('meal-type').value;
+        const food = FOOD_DB[document.getElementById('food-select').value];
+        const weight = parseFloat(document.getElementById('food-weight').value);
+        if (!weight) return alert("请输入重量");
+
+        if (!historyData[selectedDate]) {
+            historyData[selectedDate] = { cal: 0, p: 0, c: 0, f: 0, logs: [], mealSums: {"早餐":0,"中餐":0,"晚餐":0,"加餐":0} };
+        }
+
+        const ratio = weight / 100;
+        const entry = {
+            meal, name: food.name, weight,
+            cal: Math.round(food.cal * ratio),
+            p: Math.round(food.p * ratio),
+            c: Math.round(food.c * ratio),
+            f: Math.round(food.f * ratio)
+        };
+
+        const sd = historyData[selectedDate];
+        sd.logs.push(entry);
+        sd.cal += entry.cal; sd.p += entry.p; sd.c += entry.c; sd.f += entry.f;
+        sd.mealSums = sd.mealSums || {"早餐":0,"中餐":0,"晚餐":0,"加餐":0};
+        sd.mealSums[meal] = (sd.mealSums[meal] || 0) + entry.cal;
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
+        updateUI();
+        document.getElementById('food-weight').value = '';
+    }
+
+    function updateUI() {
+        const sd = historyData[selectedDate] || { cal: 0, p: 0, c: 0, f: 0, logs: [], mealSums: {"早餐":0,"中餐":0,"晚餐":0,"加餐":0} };
+        
+        document.getElementById('status-date-title').innerText = selectedDate;
+        
+        const meals = ["早餐", "中餐", "晚餐"];
+        const mealShort = {"早餐":"早", "中餐":"中", "晚餐":"晚"};
+        meals.forEach(m => {
+            const sum = (sd.mealSums && sd.mealSums[m]) || 0;
+            const limit = parseFloat(document.getElementById(`limit-${m}`).value) || 9999;
+            const el = document.getElementById(`sum-${mealShort[m]}`);
+            el.innerHTML = sum + (sum >= limit ? " <small>⚠️</small>" : "");
+            el.style.color = sum >= limit ? "var(--danger)" : "var(--text-dark)";
+        });
+        document.getElementById('sum-总').innerText = sd.cal;
+
+        const mealClass = {"早餐":"bg-breakfast","中餐":"bg-lunch","晚餐":"bg-dinner","加餐":"bg-snack"};
+        document.getElementById('log-list').innerHTML = sd.logs.length ? sd.logs.map(l => `
+            <div class="log-item">
+                <span><span class="tag ${mealClass[l.meal]}">${l.meal}</span><b>${l.name}</b> <small style="color:#666; margin-left:5px;">${l.weight}g</small></span>
+                <span style="font-weight:800; color:var(--primary)">${l.cal} kcal</span>
+            </div>
+        `).reverse().join('') : '<div style="color:#999; text-align:center; padding:30px 0; font-style:italic;">🧘‍♀️ 该日暂无记录，休息一下吧~</div>';
+
+        updateCharts(sd);
+    }
+
+    function initCharts() {
+        Chart.defaults.color = '#2c3e50';
+        Chart.defaults.font.family = "'PingFang SC', 'Segoe UI', sans-serif";
+
+        todayChart = new Chart(document.getElementById('todayChart'), {
+            type: 'doughnut',
+            data: { labels: ['蛋白', '碳水', '脂肪'], datasets: [{ data: [0,0,0], backgroundColor: ['#2ecc71', '#3498db', '#f1c40f'], borderWidth:2, borderColor:'rgba(255,255,255,0.8)' }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    datalabels: { color: '#fff', font: { weight: 'bold', size:13 }, formatter: (v) => v > 0 ? v + 'g' : '' },
+                    legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }
+                },
+                cutout: '65%'
+            }
+        });
+
+        trendChart = new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: '日摄入 (kcal)', data: [], borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.15)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2 }] },
+            options: { 
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function updateCharts(sd) {
+        todayChart.data.datasets[0].data = [sd.p, sd.c, sd.f];
+        todayChart.update();
+        const sortedDates = Object.keys(historyData).sort();
+        const last7 = sortedDates.slice(-7);
+        trendChart.data.labels = last7.map(d => d.slice(5));
+        trendChart.data.datasets[0].data = last7.map(d => historyData[d].cal);
+        trendChart.update();
+    }
+</script>
+</body>
+</html>
