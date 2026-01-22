@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitTrack Pro v11.0 - 严谨计算版</title>
+    <title>FitTrack Pro v12.0 - 智能测评集成版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
@@ -19,25 +19,39 @@
         h2 { font-size: 1rem; margin: 0 0 15px 0; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .form-group { margin-bottom: 12px; }
         label { display: block; font-size: 0.8rem; color: #7f8c8d; margin-bottom: 5px; }
-        select, input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 0.95rem; }
-        .btn { border: none; padding: 15px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.3; margin-top: 10px; }
-        .btn-add { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(46,204,113,0.3); }
-        .btn-export { background: #34495e; color: white; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.95rem; }
+        .btn { border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.3; margin-top: 10px; }
+        .btn-add { background: var(--primary); color: white; }
+        .btn-calc { background: #34495e; color: white; }
         .progress-container { background: rgba(0,0,0,0.1); height: 16px; border-radius: 8px; overflow: hidden; margin: 15px 0; }
         #total-progress-bar { height: 100%; width: 0%; transition: 0.8; }
         .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         .meal-box { background: rgba(0,0,0,0.04); padding: 12px; border-radius: 12px; text-align: center; cursor: pointer; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #fff; width: 90%; max-width: 450px; padding: 25px; border-radius: 20px; }
         #report-output { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 320px; background: white; padding: 25px; border-radius: 20px; z-index: 2000; border: 4px solid var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center;">
-        <h1 style="margin:0; font-size: 1.4rem;">🔥 FitTrack Pro <small style="font-size:0.7rem; opacity:0.6;">v11.0</small></h1>
-        <input type="date" id="view-date" style="width:auto;" onchange="changeDate()">
+    <div class="glass-card">
+        <h2>📏 第一步：初始化你的身体素质测评 (计算 TDEE)</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <div class="form-group"><label>性别</label><select id="gender"><option value="male">男</option><option value="female">女</option></select></div>
+            <div class="form-group"><label>年龄</label><input type="number" id="age" value="26"></div>
+            <div class="form-group"><label>身高 (cm)</label><input type="number" id="height" value="182"></div>
+            <div class="form-group"><label>体重 (kg)</label><input type="number" id="weight" value="82"></div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label>运动频率 (结合你的一周五练)</label>
+                <select id="activity-level">
+                    <option value="1.2">久坐 (不运动)</option>
+                    <option value="1.375">轻度 (每周1-2次)</option>
+                    <option value="1.55" selected>中度 (每周3-5次高强度)</option>
+                    <option value="1.725">重度 (每周6-7次)</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn btn-calc" onclick="calculateTDEE()">计算并锁定每日目标</button>
+        <p id="tdee-hint" style="margin-top: 10px; font-weight: bold; color: var(--primary); text-align: center; display: none;"></p>
     </div>
 
     <div class="grid-main">
@@ -76,14 +90,15 @@
                 </div>
                 <div class="form-group"><label>数值</label><input type="number" id="food-weight" placeholder="输入重量或份数"></div>
                 <button class="btn btn-add" onclick="addEntry()">✅ 确认记录</button>
-                <button class="btn btn-export" onclick="exportReport()">📄 导出今日战报</button>
             </div>
         </div>
 
         <div class="main">
             <div class="glass-card">
-                <h2>📅 <span id="display-date"></span> 状态看板</h2>
-                <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:bold;"><span>全天进度</span><span id="progress-text">0%</span></div>
+                <h2>📅 <span id="display-date"></span> <input type="date" id="view-date" style="width:auto; margin-left:10px;" onchange="changeDate()"></h2>
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:bold;">
+                    <span>今日总目标进度 (<span id="target-label">2200</span> kcal)</span><span id="progress-text">0%</span>
+                </div>
                 <div class="progress-container"><div id="total-progress-bar"></div></div>
                 <div class="summary-grid">
                     <div class="meal-box" onclick="showDetails('早餐')"><small>早餐</small><span id="sum-早" style="display:block; font-weight:bold;">0</span></div>
@@ -93,28 +108,19 @@
                 </div>
             </div>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                <div class="glass-card"><h2>🥧 营养分配 (g)</h2><div style="height:220px;"><canvas id="todayChart"></canvas></div></div>
+                <div class="glass-card"><h2>🥧 今日营养 (g)</h2><div style="height:220px;"><canvas id="todayChart"></canvas></div></div>
                 <div class="glass-card"><h2>📈 七日趋势</h2><div style="height:220px;"><canvas id="trendChart"></canvas></div></div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="meal-modal" class="modal"><div class="modal-content"><h2 id="modal-title"></h2><div id="modal-list"></div><button onclick="closeModal()" class="btn" style="background:#666; color:#fff;">关闭</button></div></div>
-<div id="report-output">
-    <h3 style="text-align:center; color:var(--primary); margin-top:0;">🌟 健身战报</h3>
-    <div id="report-content" style="font-size:0.9rem; line-height:1.6;"></div>
-    <button onclick="document.getElementById('report-output').style.display='none'" class="btn btn-add">关闭</button>
-</div>
-
 <script>
     const FOOD_DB = {
-        // 麦当劳：统一换算为每100g的营养
-        mc_egg_mcmuffin: { cal: 207, p: 11.4, c: 18.6, f: 9.3, portionWeight: 140 }, // 290kcal/portion
-        mc_sausage_egg: { cal: 260, p: 12.7, c: 15.7, f: 16.3, portionWeight: 165 }, // 430kcal/portion
-        mc_bigmac: { cal: 242, p: 12, c: 19, f: 14, portionWeight: 215 }, // 520kcal/portion
-        mc_fries: { cal: 300, p: 3.4, c: 41, f: 15, portionWeight: 110 }, // 330kcal/portion
-        // 健康/常见食物
+        mc_egg_mcmuffin: { cal: 207, p: 11.4, c: 18.6, f: 9.3, portionWeight: 140 },
+        mc_sausage_egg: { cal: 260, p: 12.7, c: 15.7, f: 16.3, portionWeight: 165 },
+        mc_bigmac: { cal: 242, p: 12, c: 19, f: 14, portionWeight: 215 },
+        mc_fries: { cal: 300, p: 3.4, c: 41, f: 15, portionWeight: 110 },
         sweet_potato: { cal: 90, p: 2, c: 20, f: 0.1, portionWeight: 150 },
         dried_purple_potato: { cal: 330, p: 4, c: 75, f: 0.5, portionWeight: 50 },
         boiled_egg: { cal: 155, p: 13, c: 1, f: 11, portionWeight: 55 },
@@ -130,15 +136,40 @@
     };
 
     let selectedDate = new Date().toISOString().split('T')[0];
-    const STORAGE_KEY = 'FitTrack_Final_V11';
+    const STORAGE_KEY = 'FitTrack_Final_V12';
     let historyData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    let tdeeTarget = localStorage.getItem('user_tdee') || 2200;
     let todayChart, trendChart;
 
     window.onload = () => {
         document.getElementById('view-date').value = selectedDate;
+        document.getElementById('target-label').innerText = tdeeTarget;
         initCharts();
         updateUI();
     };
+
+    // --- TDEE 计算逻辑 ---
+    function calculateTDEE() {
+        const g = document.getElementById('gender').value;
+        const age = parseInt(document.getElementById('age').value);
+        const h = parseInt(document.getElementById('height').value);
+        const w = parseInt(document.getElementById('weight').value);
+        const act = parseFloat(document.getElementById('activity-level').value);
+
+        if(!age || !h || !w) return alert("请完整填写身体数据");
+
+        // Mifflin-St Jeor 公式
+        let bmr = (10 * w) + (6.25 * h) - (5 * age);
+        bmr = (g === 'male') ? bmr + 5 : bmr - 161;
+        
+        tdeeTarget = Math.round(bmr * act);
+        localStorage.setItem('user_tdee', tdeeTarget);
+        
+        document.getElementById('tdee-hint').style.display = 'block';
+        document.getElementById('tdee-hint').innerText = `测评成功！你的日消耗 (TDEE) 为 ${tdeeTarget} kcal，已同步为记录目标。`;
+        document.getElementById('target-label').innerText = tdeeTarget;
+        updateUI();
+    }
 
     function addEntry() {
         const meal = document.getElementById('meal-type').value;
@@ -148,7 +179,6 @@
         const unit = document.getElementById('unit-type').value;
         if(!val) return alert("请输入数值");
 
-        // 核心逻辑：严谨计算重量
         const realWeight = (unit === 'piece') ? val * food.portionWeight : val;
         const ratio = realWeight / 100;
 
@@ -158,14 +188,14 @@
             weight: realWeight, cal: Math.round(food.cal * ratio),
             p: Math.round(food.p * ratio), c: Math.round(food.c * ratio), f: Math.round(food.f * ratio)
         });
-        save();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
         updateUI();
         document.getElementById('food-weight').value = '';
     }
 
     function updateUI() {
         const sd = historyData[selectedDate] || { logs: [] };
-        const target = 2200; // 作为 TPM 的默认参考值
+        const target = parseInt(tdeeTarget);
         let sums = {"早餐":0, "中餐":0, "晚餐":0, "加餐":0}, tc = 0, tp = 0, tcc = 0, tf = 0;
         sd.logs.forEach(l => { sums[l.meal] += l.cal; tc += l.cal; tp += l.p; tcc += l.c; tf += l.f; });
 
@@ -188,31 +218,12 @@
         trendChart.update();
     }
 
-    function exportReport() {
-        const sd = historyData[selectedDate] || { logs: [] };
-        if(!sd.logs.length) return alert("无记录");
-        let tp = 0, tc = 0, tf = 0, total = 0;
-        sd.logs.forEach(l => { total += l.cal; tp += l.p; tc += l.c; tf += l.f; });
-        document.getElementById('report-content').innerHTML = `日期：${selectedDate}<br>🔥 总摄入：${total} kcal<br>💪 蛋白：${tp}g | 🍚 碳水：${tc}g | 🥑 脂肪：${tf}g`;
-        document.getElementById('report-output').style.display = 'block';
-    }
-
-    function showDetails(mealName) {
-        const logs = (historyData[selectedDate] || { logs: [] }).logs.filter(l => l.meal === mealName);
-        document.getElementById('modal-title').innerText = `${mealName} 明细`;
-        document.getElementById('modal-list').innerHTML = logs.map(l => `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;"><span>${l.name} (${l.weight}g / ${l.cal}kcal)</span><button onclick="deleteEntry(${l.id})" style="color:red; border:none; background:none; cursor:pointer;">删除</button></div>`).join('') || '空';
-        document.getElementById('meal-modal').style.display = 'flex';
-    }
-
-    function deleteEntry(id) { historyData[selectedDate].logs = historyData[selectedDate].logs.filter(l => l.id !== id); save(); updateUI(); closeModal(); }
-    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData)); }
-    function closeModal() { document.getElementById('meal-modal').style.display = 'none'; }
-    function changeDate() { selectedDate = document.getElementById('view-date').value; updateUI(); }
     function initCharts() {
         Chart.register(ChartDataLabels);
         todayChart = new Chart(document.getElementById('todayChart'), { type: 'doughnut', data: { labels: ['蛋白', '碳水', '脂肪'], datasets: [{ data: [0,0,0], backgroundColor: ['#2ecc71','#3498db','#f1c40f'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color:'#fff', font:{weight:'bold'}, formatter: v=>v>0?v+'g':'' }, legend:{position:'bottom'} } } });
         trendChart = new Chart(document.getElementById('trendChart'), { type: 'line', data: { labels: [], datasets: [{ label:'热量', data:[], borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,0.1)', fill:true, tension:0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins:{legend:{display:false}} } });
     }
+    function changeDate() { selectedDate = document.getElementById('view-date').value; updateUI(); }
 </script>
 </body>
 </html>
