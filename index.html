@@ -3,47 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitTrack Pro v13.0 - 记录与回顾中心</title>
+    <title>FitTrack Pro v14.0 - 批量打卡版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
         :root { --primary: #2ecc71; --breakfast: #f39c12; --lunch: #e74c3c; --dinner: #9b59b6; --snack: #3498db; --danger: #c0392b; }
         body { 
             font-family: 'PingFang SC', sans-serif; margin: 0; padding: 20px; color: #2c3e50; min-height: 100vh;
-            background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1920&q=80');
+            background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1920&q=80');
             background-size: cover; background-position: center; background-attachment: fixed;
         }
         .container { max-width: 1200px; margin: auto; }
         .glass-card { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(15px); border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.3); margin-bottom: 20px; }
-        .grid-main { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+        .grid-main { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
         h2 { font-size: 1rem; margin: 0 0 15px 0; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .form-group { margin-bottom: 12px; }
         label { display: block; font-size: 0.8rem; color: #7f8c8d; margin-bottom: 5px; }
         select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.95rem; }
-        .btn { border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.3; }
-        .btn-add { background: var(--primary); color: white; width: 100%; margin-top: 10px; }
-        .btn-calc { background: #34495e; color: white; margin-top: 10px; width: 100%; }
+        .btn { border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.3; margin-top: 5px; }
+        .btn-add { background: var(--primary); color: white; }
+        .btn-draft { background: #3498db; color: white; margin-top: 10px; }
+        .btn-calc { background: #34495e; color: white; }
+        
+        /* 暂存清单样式 */
+        .draft-area { background: rgba(0,0,0,0.05); border-radius: 12px; padding: 15px; margin-top: 15px; border: 1px dashed #ccc; }
+        .draft-item { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .draft-empty { color: #999; text-align: center; font-size: 0.8rem; padding: 10px 0; }
+
         .progress-container { background: rgba(0,0,0,0.1); height: 16px; border-radius: 8px; overflow: hidden; margin: 15px 0; }
         #total-progress-bar { height: 100%; width: 0%; transition: 0.8; }
         .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         .meal-box { background: rgba(0,0,0,0.04); padding: 15px 10px; border-radius: 15px; text-align: center; cursor: pointer; transition: 0.3; }
         .meal-box:hover { background: rgba(0,0,0,0.08); transform: translateY(-3px); }
 
-        /* 弹窗明细样式 */
+        /* 弹窗样式 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #fff; width: 90%; max-width: 480px; padding: 25px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        .detail-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .del-btn { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .modal-content { background: #fff; width: 90%; max-width: 480px; padding: 25px; border-radius: 20px; }
+        .detail-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .del-btn { background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
 
-        @media (max-width: 900px) { .grid-main { grid-template-columns: 1fr; } .summary-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 900px) { .grid-main { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="glass-card">
-        <h2>📏 第一步：身体素质测评 (锁定 TDEE 目标)</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+        <h2>📏 身体测评 (锁定日消耗目标)</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px;">
             <div class="form-group"><label>性别</label><select id="gender"><option value="male">男</option><option value="female">女</option></select></div>
             <div class="form-group"><label>年龄</label><input type="number" id="age" value="26"></div>
             <div class="form-group"><label>身高 (cm)</label><input type="number" id="height" value="182"></div>
@@ -51,51 +58,55 @@
             <div class="form-group" style="grid-column: span 2;">
                 <label>运动频率</label>
                 <select id="activity-level">
-                    <option value="1.2">久坐 (不运动)</option>
-                    <option value="1.375">轻度 (每周1-2次)</option>
-                    <option value="1.55" selected>中度 (每周3-5次高强度训练)</option>
-                    <option value="1.725">重度 (每周6-7次)</option>
+                    <option value="1.2">久坐</option><option value="1.375">轻度</option>
+                    <option value="1.55" selected>中度 (每周3-5次训练)</option><option value="1.725">极高</option>
                 </select>
             </div>
         </div>
-        <button class="btn btn-calc" onclick="calculateTDEE()">计算并设定每日目标</button>
-        <p id="tdee-hint" style="margin-top: 10px; font-weight: bold; color: var(--primary); text-align: center; display: none;"></p>
+        <button class="btn btn-calc" onclick="calculateTDEE()">计算 TDEE 目标</button>
+        <p id="tdee-hint" style="margin-top:10px; text-align:center; font-weight:bold; color:var(--primary); display:none;"></p>
     </div>
 
     <div class="grid-main">
         <div class="side">
             <div class="glass-card">
-                <h2>🥘 录入中心</h2>
-                <div class="form-group"><label>餐次</label>
+                <h2>🥘 批量记录饮食</h2>
+                <div class="form-group"><label>当前餐次</label>
                     <select id="meal-type"><option value="早餐">早餐</option><option value="中餐">中餐</option><option value="晚餐">晚餐</option><option value="加餐">加餐</option></select>
                 </div>
-                <div class="form-group"><label>选择食物</label>
-                    <select id="food-select">
-                        <optgroup label="🥤 补剂专区">
-                            <option value="protein_powder">蛋白粉 (380kcal/100g)</option>
-                        </optgroup>
-                        <optgroup label="🍟 麦当劳专区">
-                            <option value="mc_egg_mcmuffin">吉士蛋麦满分 (290kcal/份)</option>
-                            <option value="mc_sausage_egg">猪柳蛋麦满分 (430kcal/份)</option>
-                            <option value="mc_bigmac">巨无霸 (520kcal/份)</option>
-                            <option value="mc_fries">中薯条 (330kcal/份)</option>
-                        </optgroup>
-                        <optgroup label="🥦 常吃/健康专区">
-                            <option value="sweet_potato">红薯 (90kcal/100g)</option>
-                            <option value="boiled_egg">水煮蛋 (155kcal/100g)</option>
-                            <option value="beef_noodles">牛肉面 (130kcal/100g)</option>
-                            <option value="chicken">去皮鸡腿 (121kcal/100g)</option>
-                            <option value="steak">牛排 (252kcal/100g)</option>
-                            <option value="rice">米饭 (116kcal/100g)</option>
-                            <option value="nuts">综合坚果 (607kcal/100g)</option>
-                        </optgroup>
-                    </select>
+                <div style="background: rgba(46,204,113,0.05); padding: 15px; border-radius: 12px;">
+                    <div class="form-group"><label>添加食物</label>
+                        <select id="food-select">
+                            <optgroup label="🥤 补剂/麦当劳">
+                                <option value="protein_powder">蛋白粉 (380kcal/100g)</option>
+                                <option value="mc_egg_mcmuffin">吉士蛋麦满分 (290kcal/份)</option>
+                                <option value="mc_sausage_egg">猪柳蛋麦满分 (430kcal/份)</option>
+                            </optgroup>
+                            <optgroup label="🥦 常见食物">
+                                <option value="beef_brisket">牛腩 (250kcal/100g)</option>
+                                <option value="boiled_egg">水煮蛋 (155kcal/100g)</option>
+                                <option value="chicken">去皮鸡腿 (121kcal/100g)</option>
+                                <option value="rice">米饭 (116kcal/100g)</option>
+                                <option value="nuts">坚果 (607kcal/100g)</option>
+                                <option value="blueberries">蓝莓 (57kcal/100g)</option>
+                                <option value="oats">燕麦 (389kcal/100g)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display:flex; gap:10px;">
+                        <div style="flex:1"><label>单位</label><select id="unit-type"><option value="g">克</option><option value="piece">份/勺</option></select></div>
+                        <div style="flex:1"><label>数量</label><input type="number" id="food-weight" placeholder="数值"></div>
+                    </div>
+                    <button class="btn btn-draft" onclick="addToDraft()">➕ 加入本餐清单</button>
                 </div>
-                <div class="form-group"><label>单位</label>
-                    <select id="unit-type"><option value="g">克 (g)</option><option value="piece">份/勺 (Portion)</option></select>
+
+                <div class="draft-area">
+                    <div style="font-size:0.8rem; font-weight:bold; margin-bottom:10px;">本次待提交：<span id="draft-total-cal">0</span> kcal</div>
+                    <div id="draft-list">
+                        <div class="draft-empty">清单为空，请先添加食物</div>
+                    </div>
                 </div>
-                <div class="form-group"><label>数值</label><input type="number" id="food-weight" placeholder="输入克数或份数"></div>
-                <button class="btn btn-add" onclick="addEntry()">✅ 确认记录</button>
+                <button id="btn-submit-all" class="btn btn-add" style="display:none;" onclick="commitBatch()">🚀 一键提交全餐</button>
             </div>
         </div>
 
@@ -114,8 +125,8 @@
                 </div>
             </div>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                <div class="glass-card"><h2>🥧 营养比例 (g)</h2><div style="height:220px;"><canvas id="todayChart"></canvas></div></div>
-                <div class="glass-card"><h2>📈 七日趋势</h2><div style="height:220px;"><canvas id="trendChart"></canvas></div></div>
+                <div class="glass-card"><h2>🥧 营养分配 (g)</h2><div style="height:230px;"><canvas id="todayChart"></canvas></div></div>
+                <div class="glass-card"><h2>📈 七日热量变化</h2><div style="height:230px;"><canvas id="trendChart"></canvas></div></div>
             </div>
         </div>
     </div>
@@ -123,9 +134,9 @@
 
 <div id="meal-modal" class="modal">
     <div class="modal-content">
-        <h2 id="modal-title" style="font-size:1.2rem;">餐次明细</h2>
-        <div id="modal-list" style="margin: 20px 0; max-height:300px; overflow-y:auto;"></div>
-        <button onclick="closeModal()" class="btn" style="width:100%; background:#666; color:#fff;">关闭窗口</button>
+        <h2 id="modal-title"></h2>
+        <div id="modal-list"></div>
+        <button onclick="closeModal()" class="btn" style="background:#666; color:#fff; margin-top:15px;">关闭</button>
     </div>
 </div>
 
@@ -134,21 +145,20 @@
         protein_powder: { name: "蛋白粉", cal: 380, p: 75, c: 10, f: 5, portionWeight: 30 },
         mc_egg_mcmuffin: { name: "吉士蛋麦满分", cal: 207, p: 11.4, c: 18.6, f: 9.3, portionWeight: 140 },
         mc_sausage_egg: { name: "猪柳蛋麦满分", cal: 260, p: 12.7, c: 15.7, f: 16.3, portionWeight: 165 },
-        mc_bigmac: { name: "巨无霸", cal: 242, p: 12, c: 19, f: 14, portionWeight: 215 },
-        mc_fries: { name: "薯条", cal: 300, p: 3.4, c: 41, f: 15, portionWeight: 110 },
-        sweet_potato: { name: "红薯", cal: 90, p: 2, c: 20, f: 0.1, portionWeight: 150 },
+        beef_brisket: { name: "牛腩", cal: 250, p: 18, c: 0, f: 19, portionWeight: 100 },
         boiled_egg: { name: "水煮蛋", cal: 155, p: 13, c: 1, f: 11, portionWeight: 55 },
-        beef_noodles: { name: "牛肉面", cal: 130, p: 7, c: 18, f: 3, portionWeight: 450 },
         chicken: { name: "去皮鸡腿", cal: 121, p: 19, c: 0, f: 4.5, portionWeight: 150 },
-        steak: { name: "牛排", cal: 252, p: 27, c: 0, f: 15, portionWeight: 200 },
         rice: { name: "米饭", cal: 116, p: 2.6, c: 25.9, f: 0.3, portionWeight: 200 },
-        nuts: { name: "坚果", cal: 607, p: 18, c: 21, f: 54, portionWeight: 30 }
+        nuts: { name: "坚果", cal: 607, p: 18, c: 21, f: 54, portionWeight: 30 },
+        blueberries: { name: "蓝莓", cal: 57, p: 0.7, c: 14.5, f: 0.3, portionWeight: 100 },
+        oats: { name: "燕麦", cal: 389, p: 16.9, c: 66, f: 6.9, portionWeight: 50 }
     };
 
     let selectedDate = new Date().toISOString().split('T')[0];
-    const STORAGE_KEY = 'FitTrack_Final_V13';
+    const STORAGE_KEY = 'FitTrack_Final_V14';
     let historyData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
     let tdeeTarget = localStorage.getItem('user_tdee') || 2200;
+    let draftItems = []; // 暂存区数据
     let todayChart, trendChart;
 
     window.onload = () => {
@@ -158,6 +168,79 @@
         updateUI();
     };
 
+    // --- 批量录入核心逻辑 ---
+    function addToDraft() {
+        const foodId = document.getElementById('food-select').value;
+        const food = FOOD_DB[foodId];
+        const val = parseFloat(document.getElementById('food-weight').value);
+        const unit = document.getElementById('unit-type').value;
+
+        if(!val) return alert("请输入数值");
+
+        const realWeight = (unit === 'piece') ? val * food.portionWeight : val;
+        const ratio = realWeight / 100;
+
+        draftItems.push({
+            id: Date.now(),
+            name: food.name,
+            weight: realWeight,
+            cal: Math.round(food.cal * ratio),
+            p: Math.round(food.p * ratio),
+            c: Math.round(food.c * ratio),
+            f: Math.round(food.f * ratio)
+        });
+
+        renderDraft();
+        document.getElementById('food-weight').value = '';
+    }
+
+    function renderDraft() {
+        const listEl = document.getElementById('draft-list');
+        const btnSubmit = document.getElementById('btn-submit-all');
+        const calEl = document.getElementById('draft-total-cal');
+
+        if(draftItems.length === 0) {
+            listEl.innerHTML = '<div class="draft-empty">清单为空</div>';
+            btnSubmit.style.display = 'none';
+            calEl.innerText = '0';
+            return;
+        }
+
+        let totalCal = 0;
+        listEl.innerHTML = draftItems.map((item, index) => {
+            totalCal += item.cal;
+            return `<div class="draft-item">
+                <span>${item.name} (${item.weight}g)</span>
+                <span>${item.cal}kcal <button onclick="removeFromDraft(${index})" style="border:none; background:none; color:red; cursor:pointer;">×</button></span>
+            </div>`;
+        }).join('');
+
+        calEl.innerText = totalCal;
+        btnSubmit.style.display = 'block';
+    }
+
+    function removeFromDraft(index) {
+        draftItems.splice(index, 1);
+        renderDraft();
+    }
+
+    function commitBatch() {
+        const meal = document.getElementById('meal-type').value;
+        if(!historyData[selectedDate]) historyData[selectedDate] = { logs: [] };
+
+        draftItems.forEach(item => {
+            item.meal = meal; // 给每个项目打上餐次标签
+            historyData[selectedDate].logs.push(item);
+        });
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
+        draftItems = []; // 清空暂存
+        renderDraft();
+        updateUI();
+        alert(`成功录入${meal}记录！`);
+    }
+
+    // --- 通用 UI 与图表逻辑 ---
     function calculateTDEE() {
         const g = document.getElementById('gender').value;
         const age = parseInt(document.getElementById('age').value);
@@ -170,30 +253,9 @@
         tdeeTarget = Math.round(bmr * act);
         localStorage.setItem('user_tdee', tdeeTarget);
         document.getElementById('tdee-hint').style.display = 'block';
-        document.getElementById('tdee-hint').innerText = `测评完成！目标已设定为 ${tdeeTarget} kcal。`;
+        document.getElementById('tdee-hint').innerText = `目标已锁定为 ${tdeeTarget} kcal。`;
         document.getElementById('target-label').innerText = tdeeTarget;
         updateUI();
-    }
-
-    function addEntry() {
-        const meal = document.getElementById('meal-type').value;
-        const foodId = document.getElementById('food-select').value;
-        const food = FOOD_DB[foodId];
-        const val = parseFloat(document.getElementById('food-weight').value);
-        const unit = document.getElementById('unit-type').value;
-        if(!val) return alert("请输入数量");
-
-        const realWeight = (unit === 'piece') ? val * food.portionWeight : val;
-        const ratio = realWeight / 100;
-
-        if(!historyData[selectedDate]) historyData[selectedDate] = { logs: [] };
-        historyData[selectedDate].logs.push({
-            id: Date.now(), meal, name: food.name, weight: realWeight, 
-            cal: Math.round(food.cal * ratio), p: Math.round(food.p * ratio), c: Math.round(food.c * ratio), f: Math.round(food.f * ratio)
-        });
-        save();
-        updateUI();
-        document.getElementById('food-weight').value = '';
     }
 
     function showDetails(mealName) {
@@ -209,15 +271,13 @@
     }
 
     function deleteEntry(id) {
-        if(!confirm("确定删除吗？")) return;
         historyData[selectedDate].logs = historyData[selectedDate].logs.filter(l => l.id !== id);
-        save();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
         updateUI();
         closeModal();
     }
 
     function closeModal() { document.getElementById('meal-modal').style.display = 'none'; }
-    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData)); }
     function changeDate() { selectedDate = document.getElementById('view-date').value; updateUI(); }
 
     function updateUI() {
